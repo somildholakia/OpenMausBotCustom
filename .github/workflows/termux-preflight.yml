@@ -1,0 +1,30 @@
+name: Termux preflight
+
+on:
+  push:
+    branches:
+      - feat/headless-termux-probe
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight-script:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate package manifest
+        run: node -e "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8'))"
+      - name: Check preflight script syntax
+        run: node --check scripts/termux-preflight.mjs
+      - name: Run preflight on Linux CI
+        run: pnpm termux:preflight
