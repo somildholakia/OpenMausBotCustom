@@ -4,7 +4,6 @@ import {
   closeSync,
   fsyncSync,
   linkSync,
-  openSync,
   mkdirSync,
   openSync,
   readFileSync,
