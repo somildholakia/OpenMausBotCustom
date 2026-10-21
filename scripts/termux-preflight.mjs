@@ -4,7 +4,6 @@
  * It does not install packages, edit project files, or print environment secrets.
  */
 import { createRequire } from "node:module";
-import { DatabaseSync } from "node:sqlite";
 import { arch, homedir, platform, tmpdir } from "node:os";
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -27,6 +26,7 @@ add("architecture", arch() === "arm64" ? "EXPECTED" : "CHECK",
   "process.arch=" + arch() + "; Galaxy A15 is expected to be ARM64");
 
 try {
+  const { DatabaseSync } = await import("node:sqlite");
   const db = new DatabaseSync(":memory:");
   db.exec("CREATE VIRTUAL TABLE termux_probe USING fts5(content)");
   db.prepare("INSERT INTO termux_probe(content) VALUES (?)").run("openmausbot fts check");
