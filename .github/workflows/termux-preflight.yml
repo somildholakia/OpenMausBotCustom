@@ -27,4 +27,4 @@ jobs:
       - name: Check preflight script syntax
         run: node --check scripts/termux-preflight.mjs
       - name: Run preflight on Linux CI
-        run: pnpm termux:preflight
+        run: node scripts/termux-preflight.mjs
