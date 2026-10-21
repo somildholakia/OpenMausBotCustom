@@ -705,7 +705,9 @@ export function routinesInConversationEnabled(cfg: AppConfig): boolean {
   return cfg.features?.routinesInConversation === true;
 }
 
-export function builtInBrowserEnabled(cfg: AppConfig, _env: NodeJS.ProcessEnv = process.env): boolean {
+export function builtInBrowserEnabled(cfg: AppConfig, env: NodeJS.ProcessEnv = process.env): boolean {
+  // Experimental lightweight profile for Termux: never launch the bundled desktop browser.
+  if (env.OMB_TERMUX_HEADLESS === "1") return false;
   return cfg.features?.browser !== false;
 }
 
