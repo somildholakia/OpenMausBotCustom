@@ -13,7 +13,7 @@ describe("Termux headless data feature gate", () => {
 
     expect(engine.unavailable()).toContain("Data tools are disabled by OMB_TERMUX_HEADLESS=1");
     await expect(engine.forBot("test-bot")).rejects.toMatchObject({
-      code: "engine_unavailable",
+      error: { code: "engine_unavailable" },
     });
     await engine.closeAll();
   });
