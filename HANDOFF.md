@@ -56,6 +56,8 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 
 - Repository metadata and source files inspected via connected GitHub access.
 - Branch creation confirmed.
-- Local full build/tests: not run. GitHub Actions workflow was added; check its actual run status before claiming CI success.
+- Local preflight script syntax check: passed on the available Node.js 22.16.0 host.
+- Local preflight execution: correctly returned BLOCKED because this environment is Node 22 (upstream requires Node >=24); SQLite FTS5 and temporary filesystem checks passed on this Linux x64 host. This is not a Termux/device test.
+- Full project build/tests: not run. GitHub Actions workflow was added; no workflow run/status is visible yet, so CI success is unverified.
 - Samsung A15 Termux test: not run.
 - Deployment: none.
