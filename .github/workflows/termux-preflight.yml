@@ -18,13 +18,22 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
       - name: Set up Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: 24
+          cache: pnpm
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
       - name: Validate package manifest
         run: node -e "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8'))"
       - name: Check preflight script syntax
         run: node --check scripts/termux-preflight.mjs
+      - name: Run focused configuration tests
+        run: pnpm exec vitest run server/config.test.ts
       - name: Run preflight on Linux CI
-        run: node scripts/termux-preflight.mjs
+        run: pnpm termux:preflight
