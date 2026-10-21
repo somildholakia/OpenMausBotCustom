@@ -40,7 +40,7 @@ A preflight pass does not prove the full server works on Android.
 
 ## 3. Current implementation status
 
-This first phase establishes a read-only device probe and documentation only. The full headless server has not yet been patched to skip unsupported subsystems. Do not run the production server on Android until a dedicated compatibility branch isolates browser, Electron, CUA, DuckDB and other unsupported native paths.
+The experimental environment flag OMB_TERMUX_HEADLESS=1 now forces the existing built-in-browser feature gate off, regardless of the saved browser setting. This prevents the server's normal browser-start call from launching the built-in browser when that code path is reached. It is only one feature gate: it does not make Electron, CUA, DuckDB, native modules, browser imports, or the full server Android-compatible. Do not run the production server on Android until startup isolation and dependency installation have been validated.
 
 ## 4. Later smoke-test acceptance criteria
 
