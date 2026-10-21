@@ -52,7 +52,8 @@ OpenMausBot already has an `openai-compat` driver. Add gateways only after the h
 Important:
 
 1. These are candidate endpoints, not hosted services included with OpenMausBot. You must run or deploy the gateway separately and configure its upstream provider access.
-2. `127.0.0.1` only works when the gateway and OpenMausBot run in the same network namespace/device. If the gateway runs on a cloud worker, use its authenticated private HTTPS endpoint instead.
+2. Do not install either gateway on the A15 as the first attempt. The FreeLLMAPI server package includes Sharp and optional better-sqlite3; OmniRoute includes Playwright and Sharp plus browser/native build machinery. Android/Termux support for these dependencies is unverified. Prefer a compatible Linux cloud worker for the gateways, then test the OpenMausBot edge server separately.
+3. `127.0.0.1` only works when the gateway and OpenMausBot run in the same network namespace/device. If the gateway runs on a cloud worker, use its authenticated private HTTPS endpoint instead.
 3. Keep the gateway's API key out of Git and out of screenshots/logs. OpenMausBot documents that per-instance `environment` values in config.json are plaintext; prefer a supported write-only settings flow where available, or protect the server account and file permissions.
 4. Begin with `tools: false`. Verify `/models`, non-streaming chat, SSE streaming, errors/rate limits and privacy before testing tool calls. A compatible JSON shape alone does not prove every upstream model supports tools.
 5. Do not assume OpenMausBot automatically fails over between two configured instances. For the first version, use one tested gateway; rely on a gateway's own documented routing/fallback or implement and test cross-gateway fallback separately.
