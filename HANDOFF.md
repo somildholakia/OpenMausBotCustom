@@ -19,7 +19,9 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 - Added experimental Termux documentation with safety restrictions and future smoke-test acceptance criteria.
 - Added the `termux:preflight` package script.
 - Added a GitHub Actions workflow to validate the manifest and preflight script on Node.js 24; its run status must be checked separately.
-- No runtime server code has been changed.
+- Added an opt-in OMB_TERMUX_HEADLESS=1 override to the existing built-in-browser feature gate in server/config.ts.
+- Added focused unit assertions in server/config.test.ts for the override and default behavior.
+- This flag only disables the built-in browser feature gate; it does not establish full Android compatibility.
 - No device test, build, or CI test has been run from this chat session.
 
 ## Files changed
@@ -49,8 +51,9 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 1. Review the three files on this branch.
 2. Install/verify a Node.js >=24 runtime in Termux if available.
 3. Run node scripts/termux-preflight.mjs on the Samsung A15 and capture the full JSON report.
-4. On a supported development machine or CI, trace imports in server/index.ts, server/data/deps.ts, and browser startup. Design a narrowly scoped headless profile that avoids unsupported subsystems.
-5. Only then change runtime code, beginning with tests for feature gating and startup isolation.
+4. Run the focused config test and full typecheck/lint suite on Node.js 24+.
+5. Trace imports in server/index.ts, server/data/deps.ts, and browser startup. Design a narrowly scoped headless profile that avoids unsupported subsystems.
+6. Test dependency installation and startup on a supported ARM64/Termux environment before adding more platform gates.
 
 ## Verification log
 
