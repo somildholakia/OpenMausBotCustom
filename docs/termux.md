@@ -42,7 +42,22 @@ A preflight pass does not prove the full server works on Android.
 
 The experimental environment flag OMB_TERMUX_HEADLESS=1 now forces the existing built-in-browser feature gate off, regardless of the saved browser setting. This prevents the server's normal browser-start call from launching the built-in browser when that code path is reached. It is only one feature gate: it does not make Electron, CUA, DuckDB, native modules, browser imports, or the full server Android-compatible. Do not run the production server on Android until startup isolation and dependency installation have been validated.
 
-## 4. Later smoke-test acceptance criteria
+## 4. LLM gateway candidates (not yet device-tested)
+
+OpenMausBot already has an `openai-compat` driver. Add gateways only after the headless server is stable, and test one at a time before enabling tool calls.
+
+- **FreeLLMAPI:** upstream is https://github.com/tashfeenahmed/freellmapi. Its documented local default is `http://127.0.0.1:3001/v1`; it documents `GET /v1/models`, `POST /v1/chat/completions`, SSE streaming, and OpenAI-style tool calling. The model `auto` is a router target, not a locally hosted model. Verify the actual version and configured provider pool before relying on it.
+- **OmniRoute:** upstream is https://github.com/diegosouzapw/OmniRoute. Its documented local default is `http://127.0.0.1:20128/v1`; it documents `GET /v1/models` and OpenAI-compatible chat completions with streaming. Use an exact model ID returned by that instance's model list.
+
+Important:
+
+1. These are candidate endpoints, not hosted services included with OpenMausBot. You must run or deploy the gateway separately and configure its upstream provider access.
+2. `127.0.0.1` only works when the gateway and OpenMausBot run in the same network namespace/device. If the gateway runs on a cloud worker, use its authenticated private HTTPS endpoint instead.
+3. Keep the gateway's API key out of Git and out of screenshots/logs. OpenMausBot documents that per-instance `environment` values in config.json are plaintext; prefer a supported write-only settings flow where available, or protect the server account and file permissions.
+4. Begin with `tools: false`. Verify `/models`, non-streaming chat, SSE streaming, errors/rate limits and privacy before testing tool calls. A compatible JSON shape alone does not prove every upstream model supports tools.
+5. Do not assume OpenMausBot automatically fails over between two configured instances. For the first version, use one tested gateway; rely on a gateway's own documented routing/fallback or implement and test cross-gateway fallback separately.
+
+## 5. Later smoke-test acceptance criteria
 
 Once the runtime path is isolated and tested on a supported development machine, test on the phone:
 
