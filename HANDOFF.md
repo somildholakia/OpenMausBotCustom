@@ -18,10 +18,11 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 - Added a read-only preflight script to report Android/Termux, Node, architecture, SQLite FTS5, filesystem and optional native dependency status.
 - Added experimental Termux documentation, safety restrictions, and gateway notes for FreeLLMAPI/OmniRoute (documented endpoints only; not tested against live providers).
 - Added the `termux:preflight` package script.
-- Added a GitHub Actions workflow to install the locked dependencies, run server/config.test.ts, validate the preflight script, and execute it on Node.js 24; its run status must be checked separately.
+- Added a GitHub Actions workflow to install the locked dependencies, run server/config.test.ts and server/data/engine-termux.test.ts, validate the preflight script, and execute it on Node.js 24; its run status must be checked separately.
 - Added an opt-in OMB_TERMUX_HEADLESS=1 override to the existing built-in-browser feature gate in server/config.ts.
-- Added focused unit assertions in server/config.test.ts for the override and default behavior.
-- This flag only disables the built-in browser feature gate; it does not establish full Android compatibility.
+- Added a data-engine gate in server/data/engine.ts so it returns a clear unavailable reason before attempting native DuckDB loading when the flag is enabled.
+- Added focused tests in server/config.test.ts and server/data/engine-termux.test.ts.
+- This flag disables two optional feature paths only; it does not establish full Android compatibility.
 - No device test, build, or CI test has been run from this chat session.
 
 ## Files changed
@@ -51,7 +52,7 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 1. Review the three files on this branch.
 2. Install/verify a Node.js >=24 runtime in Termux if available.
 3. Run node scripts/termux-preflight.mjs on the Samsung A15 and capture the full JSON report.
-4. Run the focused config test and full typecheck/lint suite on Node.js 24+.
+4. Run the focused config and data-engine gate tests plus full typecheck/lint suite on Node.js 24+.
 5. Trace imports in server/index.ts, server/data/deps.ts, and browser startup. Design a narrowly scoped headless profile that avoids unsupported subsystems.
 6. Test dependency installation and startup on a supported ARM64/Termux environment before adding more platform gates.
 
