@@ -17,6 +17,8 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 - Created branch feat/headless-termux-probe.
 - Added a read-only preflight script to report Android/Termux, Node, architecture, SQLite FTS5, filesystem and optional native dependency status.
 - Added experimental Termux documentation with safety restrictions and future smoke-test acceptance criteria.
+- Added the `termux:preflight` package script.
+- Added a GitHub Actions workflow to validate the manifest and preflight script on Node.js 24; its run status must be checked separately.
 - No runtime server code has been changed.
 - No device test, build, or CI test has been run from this chat session.
 
@@ -54,6 +56,6 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 
 - Repository metadata and source files inspected via connected GitHub access.
 - Branch creation confirmed.
-- Local build/tests: not run.
+- Local full build/tests: not run. GitHub Actions workflow was added; check its actual run status before claiming CI success.
 - Samsung A15 Termux test: not run.
 - Deployment: none.
