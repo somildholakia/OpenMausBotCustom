@@ -16,7 +16,7 @@ Adapt the forked OpenMausBot project toward a hybrid personal assistant: Samsung
 
 - Created branch feat/headless-termux-probe.
 - Added a read-only preflight script to report Android/Termux, Node, architecture, SQLite FTS5, filesystem and optional native dependency status.
-- Added experimental Termux documentation with safety restrictions and future smoke-test acceptance criteria.
+- Added experimental Termux documentation, safety restrictions, and gateway notes for FreeLLMAPI/OmniRoute (documented endpoints only; not tested against live providers).
 - Added the `termux:preflight` package script.
 - Added a GitHub Actions workflow to install the locked dependencies, run server/config.test.ts, validate the preflight script, and execute it on Node.js 24; its run status must be checked separately.
 - Added an opt-in OMB_TERMUX_HEADLESS=1 override to the existing built-in-browser feature gate in server/config.ts.
