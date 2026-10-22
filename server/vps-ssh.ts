@@ -1,7 +1,7 @@
 // An ssh_config and an `ssh` shim that add connection sharing and fail-fast timeouts to every VPS command, whatever the user's alias sets.
 import { createHash } from "node:crypto";
 import { chmodSync, existsSync, lstatSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { delimiter, join, resolve } from "node:path";
 
 export const VPS_SSH_DIR = "ssh";
@@ -16,7 +16,7 @@ function controlDirectory(sshDir: string, platform: NodeJS.Platform = process.pl
   const uid = process.getuid!();
   const id = createHash("sha256").update(resolve(sshDir)).digest("hex").slice(0, 12);
   // /tmp, not tmpdir(): macOS TMPDIR is often too long for a control socket. Validated first so a symlink or another user's dir cannot redirect it.
-  const androidRuntime = process.platform === "android";
+  const androidRuntime = platform === "android";
   const tempRoot = androidRuntime ? join(process.env.PREFIX || homedir(), "tmp") : "/tmp";
   const dir = androidRuntime
     ? join(tempRoot, "s")
@@ -80,7 +80,7 @@ export function prepareVpsSsh(dataDir: string, pathValue: string, platform: Node
   chmodSync(sshDir, 0o700);
   const configPath = join(sshDir, "config");
   const controlDir = controlDirectory(sshDir, platform);
-  const controlPathName = process.platform === "android" ? "%C" : "cm-%C";
+  const controlPathName = platform === "android" ? "%C" : "cm-%C";
   writeIfChanged(configPath, vpsSshConfigText(controlDir, join(homedir(), ".ssh", "config"), "/etc/ssh/ssh_config", controlPathName), 0o600);
   const realSsh = findExecutable("ssh", pathValue, binDir);
   if (!realSsh) return { configPath, path: pathValue };

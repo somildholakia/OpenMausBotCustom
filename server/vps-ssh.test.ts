@@ -91,17 +91,40 @@ describe.skipIf(process.platform === "win32")("VPS SSH connection sharing on POS
     expect(prepareVpsSsh(data, "/usr/bin", "darwin")).toEqual(setup);
   });
 
-  it("does not follow a pre-existing symlink for the short control directory", () => {
-    const data = join(scratch(), "long-data-path-".repeat(10));
-    const id = createHash("sha256").update(resolve(data, "ssh")).digest("hex").slice(0, 12);
-    const controlDir = process.platform === "android"
-      ? join(process.env.PREFIX || process.env.HOME!, "tmp", "s")
-      : `/tmp/omb-ssh-${process.getuid!()}-${id}`;
-    const target = scratch();
-    if (existsSync(controlDir)) rmSync(controlDir, { recursive: true, force: true });
-    symlinkSync(target, controlDir);
-    expect(() => prepare(data, "/usr/bin", "linux")).toThrow("not private");
-    rmSync(controlDir, { force: true });
+  it("uses Termux PREFIX and a short %C socket name when Android is selected", () => {
+    const previousPrefix = process.env.PREFIX;
+    const prefix = scratch();
+    process.env.PREFIX = prefix;
+    try {
+      const data = join(scratch(), "long-data-path-".repeat(10));
+      const setup = prepareVpsSsh(data, "/path-without-ssh", "android");
+      const controlPath = JSON.parse(readFileSync(setup.configPath!, "utf8").match(/^  ControlPath (.+)$/m)![1]!);
+      expect(dirname(controlPath)).toBe(join(prefix, "tmp", "s"));
+      expect(controlPath.endsWith("/%C")).toBe(true);
+      expect(controlPath).not.toContain("/cm-");
+      expect(Buffer.byteLength(controlPath.replace("%C", "0".repeat(40)))).toBeLessThanOrEqual(80);
+      expect(statSync(dirname(controlPath)).mode & 0o777).toBe(0o700);
+    } finally {
+      if (previousPrefix === undefined) delete process.env.PREFIX;
+      else process.env.PREFIX = previousPrefix;
+    }
+  });
+
+  it("does not follow a pre-existing symlink for the Android short control directory", () => {
+    const previousPrefix = process.env.PREFIX;
+    const prefix = scratch();
+    process.env.PREFIX = prefix;
+    try {
+      const data = join(scratch(), "long-data-path-".repeat(10));
+      const controlDir = join(prefix, "tmp", "s");
+      mkdirSync(dirname(controlDir), { recursive: true });
+      const target = scratch();
+      symlinkSync(target, controlDir);
+      expect(() => prepare(data, "/path-without-ssh", "android")).toThrow("not private");
+    } finally {
+      if (previousPrefix === undefined) delete process.env.PREFIX;
+      else process.env.PREFIX = previousPrefix;
+    }
   });
 
   it("keeps shell metacharacters literal in executable and data paths", () => {
