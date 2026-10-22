@@ -71,6 +71,44 @@ export function loadEnvironmentId(dataDir: string): string {
   mkdirSync(directory, { recursive: true, mode: 0o700 });
 
   const id = randomUUID();
+
+  // Android's app-private Termux filesystem may deny hard links. An exclusive
+  // create of the final file preserves create-once semantics; concurrent readers
+  // wait briefly for the winner to finish writing and never replace an identity.
+  if (process.platform === "android") {
+    let createdDescriptor: number | undefined;
+    try {
+      createdDescriptor = openSync(file, "wx", 0o600);
+      writeFileSync(createdDescriptor, id + "\\n", "utf8");
+      fsyncSync(createdDescriptor);
+      closeSync(createdDescriptor);
+      createdDescriptor = undefined;
+      return id;
+    } catch (error) {
+      if (!hasCode(error, "EEXIST")) {
+        if (createdDescriptor !== undefined) closeSync(createdDescriptor);
+        throw new Error(`Cannot create the environment identity at ${file}.`, { cause: error });
+      }
+      if (createdDescriptor !== undefined) closeSync(createdDescriptor);
+      const deadline = Date.now() + 1500;
+      while (Date.now() < deadline) {
+        try {
+          const candidate = readFileSync(file, "utf8").trim();
+          if (UUID_PATTERN.test(candidate)) return candidate;
+        } catch (readError) {
+          if (!hasCode(readError, "ENOENT")) {
+            // A competing creator may still be writing. Keep waiting briefly,
+            // then fail closed rather than replacing or rotating an identity.
+          }
+        }
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+      }
+      const winner = readEnvironmentId(file);
+      if (winner) return winner;
+      throw new Error(`The environment identity at ${file} did not become valid after another process created it.`);
+    }
+  }
+
   const temporaryFile = join(directory, `.environment-id.${process.pid}.${randomUUID()}.tmp`);
   let descriptor: number | undefined;
 

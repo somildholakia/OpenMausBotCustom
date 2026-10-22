@@ -214,6 +214,9 @@ describe("routine comms e2e on the job runtime (fake ACP fleet)", () => {
     mkdirSync(antigravityProfile, { recursive: true });
     writeFileSync(join(antigravityProfile, "acp_token.json"), "{}\n");
     compat = createServer(async (req, res) => {
+      // The fake provider may receive dozens of sequential tool-loop requests.
+      // Close each response so Node 24 cannot reuse a stale keep-alive socket.
+      res.setHeader("connection", "close");
       for await (const _ of req) {}
       if (req.url?.endsWith("/models")) {
         res.setHeader("content-type", "application/json");

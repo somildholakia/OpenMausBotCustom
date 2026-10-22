@@ -705,8 +705,8 @@ export function routinesInConversationEnabled(cfg: AppConfig): boolean {
   return cfg.features?.routinesInConversation === true;
 }
 
-export function builtInBrowserEnabled(cfg: AppConfig, _env: NodeJS.ProcessEnv = process.env): boolean {
-  return cfg.features?.browser !== false;
+export function builtInBrowserEnabled(cfg: AppConfig, env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.OMB_TERMUX_HEADLESS === "1" ? false : cfg.features?.browser !== false;
 }
 
 /** Security: off unless true because a read-only folder grant can still be escalated to a shell. */

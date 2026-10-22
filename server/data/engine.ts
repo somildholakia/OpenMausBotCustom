@@ -720,6 +720,10 @@ class Engine implements DataEngine {
 
   private load(): { binding: Binding } | { reason: string } {
     if (this.loaded) return this.loaded;
+    if (this.env.OMB_TERMUX_HEADLESS === "1") {
+      this.loaded = { reason: "Data tools are disabled by OMB_TERMUX_HEADLESS=1; DuckDB is not part of the experimental Termux headless profile." };
+      return this.loaded;
+    }
     const directory = duckdbDirectory(this.env);
     try {
       this.loaded = { binding: loadBinding(directory) };

@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync, linkSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, linkSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { hostname, uptime } from "node:os";
 import { join } from "node:path";
 
@@ -115,10 +115,19 @@ function isReaperOwner(value, targetToken) {
     && value.targetToken === targetToken;
 }
 
+function recordFilePath(path) {
+  try {
+    if (statSync(path).isDirectory()) return join(path, "record.json");
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  return path;
+}
+
 function parseRecord(path, invalidMessage, validate) {
   let raw;
   try {
-    raw = readFileSync(path, "utf8");
+    raw = readFileSync(recordFilePath(path), "utf8");
   } catch (error) {
     if (error?.code === "ENOENT") return null;
     throw leaseError("OpenMausBot cannot read the data-directory lease; refusing to start to protect its state.", error);
@@ -212,9 +221,30 @@ function ownerIdentityMatches(owner) {
 
 function unlinkExact(path, message) {
   try {
-    unlinkSync(path);
+    if (statSync(path).isDirectory()) rmSync(path, { recursive: true });
+    else unlinkSync(path);
   } catch (error) {
     if (error?.code !== "ENOENT") throw leaseError(message, error);
+  }
+}
+
+function publishDirectoryRecord(path, record, acquireMessage) {
+  const candidateDir = path + ".candidate-dir-" + record.pid + "-" + record.token;
+  try {
+    mkdirSync(candidateDir, { mode: 0o700 });
+    writeFileSync(join(candidateDir, "record.json"), JSON.stringify(record) + "\n", { flag: "wx", mode: 0o600, flush: true });
+    try {
+      renameSync(candidateDir, path);
+      return true;
+    } catch (error) {
+      if (["EEXIST", "ENOTEMPTY", "ENOTDIR"].includes(error?.code) || existsSync(path)) return false;
+      throw leaseError(acquireMessage, error);
+    }
+  } catch (error) {
+    if (error instanceof DataDirLeaseError) throw error;
+    throw leaseError(acquireMessage, error);
+  } finally {
+    unlinkExact(candidateDir, "OpenMausBot could not remove its lease candidate directory.");
   }
 }
 
@@ -231,6 +261,11 @@ function publishRecord(path, record, prepareMessage, acquireMessage) {
       return true;
     } catch (error) {
       if (error?.code === "EEXIST") return false;
+      // Android's app-private Termux filesystem can deny hard links. Publish a fully
+      // populated candidate directory with atomic rename instead of using hard links.
+      if (process.platform === "android" && error?.code === "EACCES") {
+        return publishDirectoryRecord(path, record, acquireMessage);
+      }
       throw leaseError(acquireMessage, error);
     }
   } finally {
@@ -403,44 +438,33 @@ function acquireDataDirLeaseInternal(dataDir, options = {}) {
     boot: bootSession(),
     uptime: uptimeMs(),
   };
-  const candidatePath = `${leasePath}.candidate-${owner.pid}-${owner.token}`;
-  try {
-    writeFileSync(candidatePath, `${JSON.stringify(owner)}\n`, { flag: "wx", mode: 0o600, flush: true });
-  } catch (error) {
-    throw leaseError("OpenMausBot cannot prepare its data-directory lease.", error);
-  }
-
   let acquired = false;
-  try {
-    for (;;) {
-      try {
-        linkSync(candidatePath, leasePath);
-        acquired = true;
-        break;
-      } catch (error) {
-        if (error?.code !== "EEXIST") {
-          throw leaseError("OpenMausBot cannot acquire its data-directory lease.", error);
-        }
-      }
-
-      const current = readOwner(leasePath);
-      if (!current) continue;
-      if (!sameMachine(current)) {
-        throw leaseError(
-          `This OpenMausBot data directory is already owned by a process on another machine. Lease record: ${JSON.stringify(leasePath)}.${otherMachineAdvice(leasePath)}`,
-        );
-      }
-      if (ownerIsAlive(current)) {
-        throw leaseError(
-          `OpenMausBot is already using this data directory (process ${current.pid}). Close the other instance first. If no OpenMausBot is running, delete this lease record and start again: ${JSON.stringify(leasePath)}.`,
-        );
-      }
-      if (!retireDeadOwner(leasePath, current)) {
-        throw leaseError("A stale OpenMausBot data-directory lease is already being recovered; try again shortly.");
-      }
+  for (;;) {
+    if (publishRecord(
+      leasePath,
+      owner,
+      "OpenMausBot cannot prepare its data-directory lease.",
+      "OpenMausBot cannot acquire its data-directory lease.",
+    )) {
+      acquired = true;
+      break;
     }
-  } finally {
-    unlinkExact(candidatePath, "OpenMausBot could not remove its lease candidate.");
+
+    const current = readOwner(leasePath);
+    if (!current) continue;
+    if (!sameMachine(current)) {
+      throw leaseError(
+        `This OpenMausBot data directory is already owned by a process on another machine. Lease record: ${JSON.stringify(leasePath)}.${otherMachineAdvice(leasePath)}`,
+      );
+    }
+    if (ownerIsAlive(current)) {
+      throw leaseError(
+        `OpenMausBot is already using this data directory (process ${current.pid}). Close the other instance first. If no OpenMausBot is running, delete this lease record and start again: ${JSON.stringify(leasePath)}.`,
+      );
+    }
+    if (!retireDeadOwner(leasePath, current)) {
+      throw leaseError("A stale OpenMausBot data-directory lease is already being recovered; try again shortly.");
+    }
   }
 
   if (!acquired) throw leaseError("OpenMausBot could not acquire its data-directory lease.");
@@ -455,11 +479,7 @@ function acquireDataDirLeaseInternal(dataDir, options = {}) {
       if (!current || current.pid !== owner.pid || current.host !== owner.host || current.token !== owner.token) {
         throw leaseError("OpenMausBot will not release a data-directory lease owned by another process.");
       }
-      try {
-        unlinkSync(leasePath);
-      } catch (error) {
-        throw leaseError("OpenMausBot could not release its data-directory lease.", error);
-      }
+      unlinkExact(leasePath, "OpenMausBot could not release its data-directory lease.");
       released = true;
       return true;
     },
