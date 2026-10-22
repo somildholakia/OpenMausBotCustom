@@ -706,9 +706,7 @@ export function routinesInConversationEnabled(cfg: AppConfig): boolean {
 }
 
 export function builtInBrowserEnabled(cfg: AppConfig, env: NodeJS.ProcessEnv = process.env): boolean {
-  // Experimental lightweight profile for Termux: never launch the bundled desktop browser.
-  if (env.OMB_TERMUX_HEADLESS === "1") return false;
-  return cfg.features?.browser !== false;
+  return env.OMB_TERMUX_HEADLESS === "1" ? false : cfg.features?.browser !== false;
 }
 
 /** Security: off unless true because a read-only folder grant can still be escalated to a shell. */
