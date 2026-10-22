@@ -13,7 +13,7 @@ function prepareVpsSsh(...args: Parameters<typeof prepare>) {
   const result = prepare(...args);
   if (result.configPath) {
     const dir = dirname(JSON.parse(readFileSync(result.configPath, "utf8").match(/^  ControlPath (.+)$/m)![1]!));
-    if (dir.startsWith("/tmp/omb-ssh-") && !dirs.includes(dir)) dirs.push(dir);
+    if (dir.includes("omb-ssh-") && !dirs.includes(dir)) dirs.push(dir);
   }
   return result;
 }
@@ -94,11 +94,14 @@ describe.skipIf(process.platform === "win32")("VPS SSH connection sharing on POS
   it("does not follow a pre-existing symlink for the short control directory", () => {
     const data = join(scratch(), "long-data-path-".repeat(10));
     const id = createHash("sha256").update(resolve(data, "ssh")).digest("hex").slice(0, 12);
-    const controlDir = `/tmp/omb-ssh-${process.getuid!()}-${id}`;
-    dirs.push(controlDir);
+    const controlDir = process.platform === "android"
+      ? join(process.env.PREFIX || process.env.HOME!, "tmp", "s")
+      : `/tmp/omb-ssh-${process.getuid!()}-${id}`;
     const target = scratch();
+    if (existsSync(controlDir)) rmSync(controlDir, { recursive: true, force: true });
     symlinkSync(target, controlDir);
     expect(() => prepare(data, "/usr/bin", "linux")).toThrow("not private");
+    rmSync(controlDir, { force: true });
   });
 
   it("keeps shell metacharacters literal in executable and data paths", () => {
